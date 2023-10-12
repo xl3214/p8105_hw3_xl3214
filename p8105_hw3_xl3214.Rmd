@@ -14,61 +14,74 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load dataset & necessary R packages, message=FALSE}
 library(dplyr)
 library(ggplot2)
+library(tidyverse)
 library(p8105.datasets)
 data("instacart")
 ```
 
 The **instacart** dataset has `r nrow(instacart)` observations and `r ncol(instacart)` variables, including: 
 
-* `order_id`: order identifier
+* `order_id`: order identifier, class `r class(pull(instacart, order_id))`.
 
-* `product_id`: product identifier
+* `product_id`: product identifier, class `r class(pull(instacart, product_id))`.
 
-* `add_to_cart_order`: order in which each product was added to cart
+* `add_to_cart_order`: order in which each product was added to cart, class `r class(pull(instacart, add_to_cart_order))`.
 
-* `reordered`: 1 if this prodcut has been ordered by this user in the past, 0 otherwise
+* `reordered`: 1 if this prodcut has been ordered by this user in the past, 0 otherwise, class `r class(pull(instacart, reordered))`.
 
-* `user_id`: customer identifier
+* `user_id`: customer identifier, class `r class(pull(instacart, user_id))`.
 
-* `eval_set`: which evaluation set this order belongs in (Note that the data for use in this class is exclusively from the “train” eval_set)
+* `eval_set`: which evaluation set this order belongs in (Note that the data for use in this class is exclusively from the “train” eval_set), class `r class(pull(instacart, eval_set))`.
 
-* `order_number`: the order sequence number for this user (1=first, n=nth)
+* `order_number`: the order sequence number for this user (1=first, n=nth), class `r class(pull(instacart, order_number))`.
 
-* `order_dow`: the day of the week on which the order was placed
+* `order_dow`: the day of the week on which the order was placed, class `r class(pull(instacart, order_dow))`.
 
-* `order_hour_of_day`: the hour of the day on which the order was placed
+* `order_hour_of_day`: the hour of the day on which the order was placed, class `r class(pull(instacart, order_hour_of_day))`.
 
-* `days_since_prior_order`: days since the last order, capped at 30, NA if order_number=1
+* `days_since_prior_order`: days since the last order, capped at 30, NA if order_number=1, class `r class(pull(instacart, days_since_prior_order))`.
 
-* `product_name`: name of the product
+* `product_name`: name of the product, class `r class(pull(instacart, product_name))`.
 
-* `aisle_id`: aisle identifier
+* `aisle_id`: aisle identifier, class `r class(pull(instacart, aisle_id))`.
 
-* `department_id`: department identifier
+* `department_id`: department identifier, class `r class(pull(instacart, department_id))`.
 
-* `aisle`: the name of the aisle
+* `aisle`: the name of the aisle, class `r class(pull(instacart, aisle))`.
 
-* `department`: the name of the department
+* `department`: the name of the department, class `r class(pull(instacart, department))`.
 
-```{r Explore key variables, message=FALSE}
+```{r Explore key variables, message = FALSE, echo = FALSE}
 #Summary of unique users
-instacart |> 
+users_sum <- instacart |> 
   group_by(user_id) |> 
   summarize(n_obs = n())
 
 #Summary of unique orders
-instacart |> 
+orders_sum <- instacart |> 
   group_by(order_id) |> 
   summarize(n_obs = n())
 
-#Summary of reordered (or not) by the day of the week on which the order was placed
-instacart |>
-  group_by(order_dow, reordered) |>
-  summarize(count = n())
+#Summary of aisles
+aisle_sum <- instacart |> 
+  group_by(aisle) |> 
+  summarize(n_obs = n())
+
+#Summary of departments
+department_sum <- instacart |> 
+  group_by(department) |> 
+  summarize(n_obs = n())
+
+#Summary of sales by the day of the week on which the order was placed
+sum_dow <- instacart |>
+  group_by(order_dow) |>
+  summarize(n_obs = n())
+sum_dow
 ```
 
+There are `r nrow(users_sum)` unique users and `r nrow(orders_sum)` unique orders. On average, there are `r mean(sum_dow$n_obs)` items sold per day. There are `r length(unique(pull(aisle_sum, aisle)))` aisles and `r length(unique(pull(department_sum, department)))` departments. Below are some graphs to help visualize the dataset key variables.
 
-```{r Some basic visualizations, echo = FALSE}
+```{r Some basic visualizations, echo = FALSE, message = FALSE}
 #number of unique orders and distribution of total items purchased per order, colored by unique users
 instacart |> 
   group_by(order_id) |> 
@@ -82,19 +95,19 @@ instacart |>
   )
 
 #departments, in barplot
-instacart |> ggplot(aes(x = department)) +
+instacart |> ggplot(aes(y = department)) +
   geom_bar(color = "blue", fill = "lightblue") +
   labs(title ="Department Barplot",
-       x ='Department',
-       y ='Frequency'
+       y ='Department',
+       x ='Frequency'
       ) + 
-  theme(axis.text.x=element_text(size=4))
+  theme(axis.text.y=element_text(size=10))
 
 #aisles, in barplot
 instacart |> ggplot(aes(x = aisle_id)) +
   geom_bar(color = "blue", fill = "lightblue") +
   labs(title = "Aisle Barplot",
-       x ='Aisle',
+       x ='Unique Aisle ID',
        y ='Frequency'
       )
 
@@ -109,26 +122,58 @@ instacart |>
   theme(legend.position = "top")
 ```
 
+* How many aisles are there, and which aisles are the most items ordered from?
 
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
-```{r}
-#instacart |> 
-# ggplot(aes(x = product_id, color = aisle_id)) + geom_histogram() + 
-# labs(
-#   title = "Product Histogram",
-#   x = "Product Unique ID",
-#   y = "Number of Items (Count)"
-# )
- 
-# group_by(order_id) |>
-# summarize(n_obs = n()) |> 
-# ggplot(aes(x = add_to_cart_order)) + 
-# geom_histogram() |>
-# ggplot(aes(x = add_to_cart_order, y = tmax)) + 
-# geom_point()
+  * Answer: There are `r length(unique(pull(instacart, aisle)))` aisles, and most items are ordered from aisle *`r filter(aisle_sum, n_obs == max(aisle_sum$n_obs)) |> select(aisle)`*.
+
+* Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+
+```{r Making the plot, echo = FALSE}
+#aisles, in barplot
+aisle_for_plot <- instacart |>
+  group_by(aisle) |>
+  summarize(n_obs = n()) |>
+  filter(n_obs > 10000)
+
+aisle_for_plot |>
+  ggplot(aes(y = aisle, x = n_obs)) +
+  geom_point() +
+  labs(title = "Aisle Scatterplot",
+       x ='Number of Items Purchased',
+       y ='Aisle'
+      ) + 
+  theme(axis.text.y=element_text(size=8))
 ```
 
-* How many aisles are there, and which aisles are the most items ordered from?
-* Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 * Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+
+```{r Making the table showing three most popular items, message = FALSE, echo = FALSE}
+aisle_for_table <- instacart |>
+  filter(aisle == c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
+  group_by(aisle, product_name) |>
+  summarize(n_obs = n()) |>
+  filter(n_obs %in% tail(sort(unique(n_obs)), 3)) 
+aisle_for_table
+```
+
+
 * Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+```{r Making the table for mean hour of day, message = FALSE, echo = FALSE}
+aisle_for_table_2 <- instacart |>
+  filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) |>
+  group_by(order_dow) |>
+  mutate(mean_hour = mean(order_hour_of_day, na.rm = TRUE)) |>
+  select(order_dow, mean_hour) |>
+  unique(aisle_for_table_2$order_dow, incomparables = FALSE)
+
+aisle_for_table_2 <- arrange(aisle_for_table_2, order_dow)
+aisle_for_table_2 <-
+  pivot_wider(
+    aisle_for_table_2,
+    names_from = "order_dow",
+    values_from = "mean_hour"
+  )
+  unique(aisle_for_table_2, order_dow)
+aisle_for_table_2
+```
