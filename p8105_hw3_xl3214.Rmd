@@ -11,12 +11,82 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Question 1
 
-```{r load dataset}
+```{r load dataset & necessary R packages, message=FALSE}
+library(dplyr)
+library(ggridges)
 library(p8105.datasets)
 data("instacart")
 ```
 
+The **instacart** dataset has `r nrow(instacart)` observations and `r ncol(instacart)` variables, including: 
+* `order_id`: order identifier
+* `product_id`: product identifier
+* `add_to_cart_order`: order in which each product was added to cart
+* `reordered`: 1 if this prodcut has been ordered by this user in the past, 0 otherwise
+* `user_id`: customer identifier
+* `eval_set`: which evaluation set this order belongs in (Note that the data for use in this class is exclusively from the “train” eval_set)
+* `order_number`: the order sequence number for this user (1=first, n=nth)
+* `order_dow`: the day of the week on which the order was placed
+* `order_hour_of_day`: the hour of the day on which the order was placed
+* `days_since_prior_order`: days since the last order, capped at 30, NA if order_number=1
+* `product_name`: name of the product
+* `aisle_id`: aisle identifier
+* `department_id`: department identifier
+* `aisle`: the name of the aisle
+* `department`: the name of the department
+
+```{r Some basic explorations}
+#number of unique orders and distribution of total items purchased per order, colored by unique users
+instacart |> 
+  group_by(order_id) |> 
+  summarize(n_obs = n()) |> 
+  ggplot(aes(x = n_obs)) + geom_histogram(color = "blue", fill = "lightblue") + 
+  labs(
+    title = "Orders Histogram",
+    x = "Unique Order ID",
+    y = "Number of Items (Count)"
+  )
+
+#departments, in barplot
+barplot(table(pull(instacart, department)),
+        main ="Department Barplot",
+        xlab ='Department',
+        ylab ='Frequency')
+
+#aisles, in barplot
+barplot(table(pull(instacart, aisle_id)),
+        main ="Aisle Barplot",
+        xlab ='Department',
+        ylab ='Frequency')
+
+#aisles, colored by departments
+instacart |> 
+  ggplot(aes(x = aisle_id, color = department)) + geom_histogram() + 
+  labs(
+    title = "Aisles Histogram",
+    x = "Unique Aisle ID",
+    y = "Number of Items (Count)"
+  )
+```
+
+
 The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
+```{r}
+instacart |> 
+  ggplot(aes(x = product_id, color = aisle_id)) + geom_histogram() + 
+  labs(
+    title = "Product Histogram",
+    x = "Product Unique ID",
+    y = "Number of Items (Count)"
+  )
+ 
+  group_by(order_id) |>
+  summarize(n_obs = n()) |> 
+  ggplot(aes(x = add_to_cart_order)) + 
+  geom_histogram() |>
+  ggplot(aes(x = add_to_cart_order, y = tmax)) + 
+  geom_point()
+```
 
 * How many aisles are there, and which aisles are the most items ordered from?
 * Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
