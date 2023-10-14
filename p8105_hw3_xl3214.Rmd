@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Question 1
 
-```{r load dataset & necessary R packages, message=FALSE}
+```{r load dataset & necessary R packages, message = FALSE}
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
@@ -79,7 +79,7 @@ sum_dow <- instacart |>
 sum_dow
 ```
 
-There are `r nrow(users_sum)` unique users and `r nrow(orders_sum)` unique orders. On average, there are `r mean(sum_dow$n_obs)` items sold per day. There are `r length(unique(pull(aisle_sum, aisle)))` aisles and `r length(unique(pull(department_sum, department)))` departments. Below are some graphs to help visualize the dataset key variables.
+  * There are `r nrow(users_sum)` unique users and `r nrow(orders_sum)` unique orders. On average, there are `r mean(sum_dow$n_obs)` items sold per day. There are `r length(unique(pull(aisle_sum, aisle)))` aisles and `r length(unique(pull(department_sum, department)))` departments. Below are some graphs to help visualize the dataset key variables.
 
 ```{r Some basic visualizations, echo = FALSE, message = FALSE}
 #number of unique orders and distribution of total items purchased per order, colored by unique users
@@ -122,11 +122,11 @@ instacart |>
   theme(legend.position = "top")
 ```
 
-* How many aisles are there, and which aisles are the most items ordered from?
+1. How many aisles are there, and which aisles are the most items ordered from?
 
   * Answer: There are `r length(unique(pull(instacart, aisle)))` aisles, and most items are ordered from aisle *`r filter(aisle_sum, n_obs == max(aisle_sum$n_obs)) |> select(aisle)`*.
 
-* Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+2. Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 
 ```{r Making the plot, echo = FALSE}
 #aisles, in barplot
@@ -145,7 +145,12 @@ aisle_for_plot |>
   theme(axis.text.y=element_text(size=8))
 ```
 
-* Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+  * There are `r length(unique(pull(aisle_for_plot, aisle)))` aisles with more than 10,000 items ordered. 
+  
+  * Most aisles have less than 40,000 items ordered. There are 5 aisles that have more than 40,000 items sold. They are: `r pull(filter(aisle_for_plot, n_obs > 40000), aisle)`.
+  
+
+3. Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
 
 ```{r Making the table showing three most popular items, message = FALSE, echo = FALSE}
 aisle_for_table <- instacart |>
@@ -157,8 +162,16 @@ aisle_for_table <- instacart |>
 aisle_for_table
 ```
 
+  * For aisle *packaged vegetables fruits*, products `r pull(filter(aisle_for_table, aisle == "packaged vegetables fruits"), product_name)` are the three most popular products, each correspond to `r pull(filter(aisle_for_table, aisle == "packaged vegetables fruits"), n_obs)` in sales.
 
-* Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+  * For aisle *baking ingredients*, products `r pull(filter(aisle_for_table, aisle == "baking ingredients"), product_name)` are the three most popular products, each correspond to `r pull(filter(aisle_for_table, aisle == "baking ingredients"), n_obs)` in sales.
+  
+  * For aisle *dog food care*, products `r pull(filter(aisle_for_table, aisle == "dog food care"), product_name)` are the three most popular products, each correspond to `r pull(filter(aisle_for_table, aisle == "dog food care"), n_obs)` in sales.
+  
+  * Among the three aisles, `r aisle_for_table[which.max(pull(aisle_for_table, n_obs)), 2]` has the most sales of `r max(pull(aisle_for_table, n_obs))`.
+
+
+4. Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
 
 ```{r Making the table for mean hour of day, message = FALSE, echo = FALSE}
 aisle_for_table_2 <- instacart |>
@@ -172,3 +185,12 @@ aisle_for_table_2 <- instacart |>
   pivot_wider(names_from = "order_dow", values_from = "mean_hour")
 aisle_for_table_2
 ```
+  
+  * `r colnames(aisle_for_table_2[max.col(aisle_for_table_2,ties.method="first")])` has the latest mean hour of day at which Pink Lady Apples and Coffee Ice Cream are ordered. 
+
+
+## Question 2
+```{r load dataset, message = FALSE}
+data("brfss_smart2010")
+```
+
