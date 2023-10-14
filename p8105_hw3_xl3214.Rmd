@@ -149,10 +149,11 @@ aisle_for_plot |>
 
 ```{r Making the table showing three most popular items, message = FALSE, echo = FALSE}
 aisle_for_table <- instacart |>
-  filter(aisle == c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
+  filter(aisle == "baking ingredients" | aisle == "dog food care" | aisle == "packaged vegetables fruits") |>
   group_by(aisle, product_name) |>
   summarize(n_obs = n()) |>
-  filter(n_obs %in% tail(sort(unique(n_obs)), 3)) 
+  filter(n_obs %in% tail(sort(n_obs), 3)) |>
+  arrange(desc(n_obs))
 aisle_for_table
 ```
 
@@ -161,19 +162,13 @@ aisle_for_table
 
 ```{r Making the table for mean hour of day, message = FALSE, echo = FALSE}
 aisle_for_table_2 <- instacart |>
-  filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) |>
+  filter(product_name == "Pink Lady Apples" | product_name == "Coffee Ice Cream") |>
   group_by(order_dow) |>
   mutate(mean_hour = mean(order_hour_of_day, na.rm = TRUE)) |>
-  select(order_dow, mean_hour) |>
-  unique(aisle_for_table_2$order_dow, incomparables = FALSE)
-
-aisle_for_table_2 <- arrange(aisle_for_table_2, order_dow)
-aisle_for_table_2 <-
-  pivot_wider(
-    aisle_for_table_2,
-    names_from = "order_dow",
-    values_from = "mean_hour"
-  )
-  unique(aisle_for_table_2, order_dow)
+  distinct(order_dow, mean_hour) |>
+  arrange(order_dow) |>
+  mutate(order_dow = recode(order_dow, "0" = "Sun", "1" = "Mon", "2" = "Tue", 
+                            "3" = "Wed", "4" = "Thurs", "5" = "Fri", "6" = "Sat")) |>
+  pivot_wider(names_from = "order_dow", values_from = "mean_hour")
 aisle_for_table_2
 ```
