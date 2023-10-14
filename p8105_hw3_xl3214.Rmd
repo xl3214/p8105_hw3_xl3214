@@ -19,6 +19,7 @@ library(p8105.datasets)
 data("instacart")
 head(instacart)
 summary(instacart)
+sum(is.na(instacart))
 ```
 
 The **instacart** dataset has `r nrow(instacart)` observations and `r ncol(instacart)` variables, including: 
@@ -194,6 +195,7 @@ aisle_for_table_2
 ## Question 2
 ```{r load dataset, message = FALSE, results = 'hide'}
 data("brfss_smart2010")
+sum(is.na(brfss_smart2010))
 ```
 
 ```{r data cleaning, results = 'hide', message = FALSE}
@@ -207,8 +209,10 @@ brfss <- brfss_smart2010 |>
                            levels=c("Poor", "Fair", "Good", "Very good", "Excellent"), ordered=TRUE)) |>
   rename(resp_id = respid, location_abbr = locationabbr, location_desc = locationdesc)
 head(brfss)
+sum(is.na(brfss))
 unique(pull(brfss, topic))
 unique(pull(brfss, response))
+nrow(!is.na(brfss))
 ```
 
 The BRFSS dataset has `r nrow(brfss)` observations and `r ncol(brfss)` variables. Variables include: `r colnames(brfss)`.
@@ -222,7 +226,7 @@ brfss_q1 <- brfss |>
   distinct(year, location_abbr, location_desc) |>
   group_by(year, location_abbr) |>
   summarise(n_obs = n())
-pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)
+sum(is.na(brfss_q1))
 ```
 
   * In 2002, `r pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
@@ -239,6 +243,8 @@ brfss_q2 <- brfss |>
   select(year, location_abbr, data_value_state_avg) |>
   distinct(year, location_abbr, data_value_state_avg)
 brfss_q2
+check_na <- which(is.na(brfss_q2))
+brfss_q2[check_na,]
 
 ggplot(brfss_q2, aes(x = year, y = data_value_state_avg, color = location_abbr)) + 
   geom_line() +
@@ -293,8 +299,31 @@ ggplot(brfss_q3, aes(x = response, y = data_value, color = location_desc)) +
 
 ## Question 3
 
+1. Load, tidy, merge, and otherwise organize the data sets. 
 
+Your final dataset should include all originally observed variables; exclude participants less than 21 years of age, and those with missing demographic data; and encode data with reasonable variable classes (i.e. not numeric, and using factors with the ordering of tables and plots in mind).
 
+```{r Q3: Read-in datasets and cleaning, message = FALSE, results = 'hide'}
+#Checking variable descriptions (first few rows)
+covar_desc <- read_csv(file = "./nhanes_covar.csv", col_names = FALSE)
+covar_desc <- covar_desc[1:4,]
+covar_desc
+
+covar <- read_csv(file = "./nhanes_covar.csv", skip = 4, col_names = TRUE) |> 
+  janitor::clean_names() |> 
+  mutate(sex = recode(sex, "1" = "male", "2" = "female")) |>
+  mutate(education = recode(education, "1" = "Less than high school", "2" = "High school equivalent", "3" = "More than high school")) |>
+  filter(age < 21)
+
+#Remove NAs
+covar <- na.omit(covar)
+```
+
+Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
 
 
 
