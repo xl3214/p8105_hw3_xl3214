@@ -81,9 +81,9 @@ sum_dow <- instacart |>
 sum_dow
 ```
 
-  * There are `r nrow(users_sum)` unique users and `r nrow(orders_sum)` unique orders. On average, there are `r mean(sum_dow$n_obs)` items sold per day. There are `r length(unique(pull(aisle_sum, aisle)))` aisles and `r length(unique(pull(department_sum, department)))` departments. Below are some graphs to help visualize the dataset key variables.
+  * There are `r nrow(users_sum)` unique users and `r nrow(orders_sum)` unique orders. On average, there are `r mean(pull(sum_dow,n_obs))` items sold per day. There are `r length(unique(pull(aisle_sum, aisle)))` aisles and `r length(unique(pull(department_sum, department)))` departments. Below are some graphs to help visualize the dataset key variables.
 
-```{r Some basic visualizations, echo = FALSE, message = FALSE}
+```{r Q1- Some basic visualizations, echo = FALSE, message = FALSE}
 #number of unique orders and distribution of total items purchased per order, colored by unique users
 instacart |> 
   group_by(order_id) |> 
@@ -126,11 +126,11 @@ instacart |>
 
 1. How many aisles are there, and which aisles are the most items ordered from?
 
-  * Answer: There are `r length(unique(pull(instacart, aisle)))` aisles, and most items are ordered from aisle *`r filter(aisle_sum, n_obs == max(aisle_sum$n_obs)) |> select(aisle)`*.
+  * Answer: There are `r length(unique(pull(instacart, aisle)))` aisles, and most items are ordered from aisle *`r filter(aisle_sum, n_obs == max(pull(aisle_sum,n_obs))) |> select(aisle)`*.
 
 2. Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 
-```{r Making the plot, echo = FALSE}
+```{r Q1- Making the aisle plot, echo = FALSE}
 #aisles, in barplot
 aisle_for_plot <- instacart |>
   group_by(aisle) |>
@@ -202,24 +202,96 @@ data("brfss_smart2010")
 #organize responses as a factor taking levels ordered from “Poor” to “Excellent”
 brfss <- brfss_smart2010 |>
   janitor::clean_names() |> 
-  filter(topic == "Overall Health" | response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) |> 
+  filter(topic == "Overall Health" & response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) |> 
   mutate(response = factor(response, 
                            levels=c("Poor", "Fair", "Good", "Very good", "Excellent"), ordered=TRUE)) |>
   rename(resp_id = respid, location_abbr = locationabbr, location_desc = locationdesc)
 head(brfss)
-unique(brfss$topic)
-unique(brfss$response)
+unique(pull(brfss, topic))
+unique(pull(brfss, response))
 ```
 
-Using this dataset, do or answer the following (commenting on the results of each):
+The BRFSS dataset has `r nrow(brfss)` observations and `r ncol(brfss)` variables. Variables include: `r colnames(brfss)`.
 
 1. In 2002, which states were observed at 7 or more locations? What about in 2010?
 
-  * In 2002, 
+```{r results = 'hide', message = FALSE, echo = FALSE}
+brfss_q1 <- brfss |> 
+  group_by(year) |> 
+  select(year, location_abbr, location_desc) |>
+  distinct(year, location_abbr, location_desc) |>
+  group_by(year, location_abbr) |>
+  summarise(n_obs = n())
+pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)
+```
+
+  * In 2002, `r pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
+  
+  * In 2010, `r pull(filter(brfss_q1, year == "2010" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
 
 2. Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
 
+```{r Q2- Spaghetti Plot, echo = FALSE, warning = FALSE}
+brfss_q2 <- brfss |> 
+  filter(response == "Excellent") |>
+  group_by(year, location_abbr) |> 
+  mutate(data_value_state_avg = mean(data_value)) |>
+  select(year, location_abbr, data_value_state_avg) |>
+  distinct(year, location_abbr, data_value_state_avg)
+brfss_q2
+
+ggplot(brfss_q2, aes(x = year, y = data_value_state_avg, color = location_abbr)) + 
+  geom_line() +
+  labs(title = "Spaghetti Plot: Yearly Average Data Value, by State",
+       x = "Year",
+       y = "Average Data Value"
+      )
+```
+
+  * The average data values across locations within a state fluctuates across years, but overall remains fairly stable. There is no distinguishable trend in the average data values across years. 
+  
+  * Among all data available, `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 1]` has the highest average data value, `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 1]` has the lowest average data value.
+
 3. Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r Q2- Two-panel plot, echo = FALSE, warning = FALSE}
+brfss_q3 <- brfss |>
+  filter(location_abbr == "NY" & year %in% c("2006", "2010")) |>
+  select(year, location_desc, response, data_value)
+
+#Graph 1: without coloring by county
+ggplot(brfss_q3, aes(x = response, y = data_value)) + 
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+             outlier.size=2, notch=FALSE) + 
+  facet_grid(. ~ year) +
+  labs(
+    title = "Box Plot: Data Value for Responses in NY State, 2006 vs. 2010",
+       x = "Response",
+       y = "Data Value"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=7))
+
+#Graph 2: with coloring by county
+ggplot(brfss_q3, aes(x = response, y = data_value, color = location_desc)) + 
+  geom_point() + 
+  facet_grid(. ~ year) +
+  labs(
+    title = "Scatter Plot: Data Value for Responses among Locations in NY State, 2006 vs. 2010",
+       x = "Response",
+       y = "Data Value"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=7))
+```
+
+  * Based on the plots, we can see that *Poor* responses correspond to the lowest data values across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the data values also increase. However, for responses of *Excellent*, we see a decreased data value distribution compared to the previous *Good* and *Very good*. 
+  
+  * We can see that in 2006, responses *Good* and *Very good* have comparable data value distributions, although the median for *Very good* is slightly higher. When it comes to 2010, the data value for responses *Very good* is apparently higher than that of *Good*. Responses *Fair* and *Poor* in 2010 have wider spread compared to that of 2006.
+
+## Question 3
 
 
 
