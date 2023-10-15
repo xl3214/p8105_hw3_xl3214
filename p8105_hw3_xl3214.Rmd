@@ -162,7 +162,7 @@ aisle_for_table <- instacart |>
   summarize(n_obs = n()) |>
   filter(n_obs %in% tail(sort(n_obs), 3)) |>
   arrange(desc(n_obs))
-aisle_for_table
+aisle_for_table |> knitr::kable()
 ```
 
   * For aisle *packaged vegetables fruits*, products `r pull(filter(aisle_for_table, aisle == "packaged vegetables fruits"), product_name)` are the three most popular products, each correspond to `r pull(filter(aisle_for_table, aisle == "packaged vegetables fruits"), n_obs)` in sales.
@@ -185,8 +185,8 @@ aisle_for_table_2 <- instacart |>
   arrange(order_dow) |>
   mutate(order_dow = recode(order_dow, "0" = "Sun", "1" = "Mon", "2" = "Tue", 
                             "3" = "Wed", "4" = "Thurs", "5" = "Fri", "6" = "Sat")) |>
-  pivot_wider(names_from = "order_dow", values_from = "mean_hour")
-aisle_for_table_2
+  pivot_wider(names_from = "order_dow", values_from = "mean_hour") 
+aisle_for_table_2 |> knitr::kable()
 ```
   
   * `r colnames(aisle_for_table_2[max.col(aisle_for_table_2,ties.method="first")])` has the latest mean hour of day at which Pink Lady Apples and Coffee Ice Cream are ordered. 
@@ -242,9 +242,6 @@ brfss_q2 <- brfss |>
   mutate(data_value_state_avg = mean(data_value)) |>
   select(year, location_abbr, data_value_state_avg) |>
   distinct(year, location_abbr, data_value_state_avg)
-brfss_q2
-check_na <- which(is.na(brfss_q2))
-brfss_q2[check_na,]
 
 ggplot(brfss_q2, aes(x = year, y = data_value_state_avg, color = location_abbr)) + 
   geom_line() +
@@ -293,7 +290,7 @@ ggplot(brfss_q3, aes(x = response, y = data_value, color = location_desc)) +
     axis.text.x = element_text(size=7))
 ```
 
-  * Based on the plots, we can see that *Poor* responses correspond to the lowest crude prevalence across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the crude prevalence also increases. However, for responses of *Excellent*, we see a decreased crude prevalence distribution compared to the previous *Good* and *Very good*. 
+  * Based on the plots, we can see that *Poor* responses had the lowest crude prevalence across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the crude prevalence also increases. However, for responses of *Excellent*, we see a decreased crude prevalence distribution compared to the previous *Good* and *Very good*. 
   
   * We can see that in 2006, responses *Good* and *Very good* have comparable crude prevalence distributions, although the median for *Very good* is slightly higher. When it comes to 2010, the crude prevalence for responses *Very good* is apparently higher than that of *Good*. Responses *Fair* and *Poor* in 2010 have wider spread compared to that of 2006.
 
@@ -334,12 +331,12 @@ summary(q3_merged)
 
 2. Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 
-```{r Q3- sex in each education cat and age distribution, echo = FALSE}
+```{r Q3- sex in each education cat and age distribution, echo = FALSE, message = FALSE}
 #Create table for the number of men and women in each education category
 sex_education_df <- q3_merged |>
   group_by(education, sex) |> 
   summarise(n_obs = n())
-sex_education_df
+sex_education_df |> knitr::kable()
 
 #Create visualization of the age distributions for men and women in each education category
 ggplot(q3_merged, aes(x = age, y = education)) +
@@ -363,7 +360,7 @@ ggplot(q3_merged, aes(x = age, y = education)) +
 
 3. Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
 
-```{r Q3- calculate total mims and plot it against age, echo = FALSE}
+```{r Q3- calculate total mims and plot it against age, echo = FALSE, message = FALSE}
 #aggregate across minutes to create total activity variable, "total_mims"
 analysis_total <- q3_merged |> select(min1:min1440)
 
@@ -397,7 +394,7 @@ ggplot(analysis_total, aes(x = age, y = total_mims, color = sex)) +
 
 4. Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
 
-```{r Q3- 24-hour activity time courses for each education level and sex, echo = FALSE}
+```{r Q3- 24-hour activity time courses for each education level and sex, echo = FALSE, message = FALSE}
 #Prep dataset for plotting, i.e., change variables min1:min1440 to rows and change "min1" to 1
 analysis_time_course <- q3_merged |> 
   pivot_longer(min1:min1440, names_to = "minute", values_to = "mims") |>
