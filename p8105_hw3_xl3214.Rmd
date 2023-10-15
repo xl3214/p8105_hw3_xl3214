@@ -208,13 +208,12 @@ brfss <- brfss_smart2010 |>
   mutate(response = factor(response, 
                            levels=c("Poor", "Fair", "Good", "Very good", "Excellent"), ordered=TRUE)) |>
   rename(resp_id = respid, location_abbr = locationabbr, location_desc = locationdesc)
+
 head(brfss)
 sum(is.na(brfss))
-unique(pull(brfss, topic))
-unique(pull(brfss, response))
 ```
 
-The BRFSS dataset has `r nrow(brfss)` observations and `r ncol(brfss)` variables. Variables include: `r colnames(brfss)`.
+After cleaning, the BRFSS dataset has `r nrow(brfss)` observations and `r ncol(brfss)` variables. Variables include: `r colnames(brfss)`. The type of data value in this dataset is `r distinct(brfss, data_value_type)`, and the unit of data value is `r distinct(brfss, data_value_unit)`. The topic of focus is `r unique(pull(brfss, topic))`, question is `r unique(pull(brfss, question))`, and responses include `r unique(pull(brfss, response))`.
 
 1. In 2002, which states were observed at 7 or more locations? What about in 2010?
 
@@ -231,6 +230,8 @@ sum(is.na(brfss_q1))
   * In 2002, `r pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
   
   * In 2010, `r pull(filter(brfss_q1, year == "2010" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
+  
+  * From 2002 to 2010, there is a significant increase in the number of states that have 7 or more observation locations. 
 
 2. Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
 
@@ -247,15 +248,15 @@ brfss_q2[check_na,]
 
 ggplot(brfss_q2, aes(x = year, y = data_value_state_avg, color = location_abbr)) + 
   geom_line() +
-  labs(title = "Spaghetti Plot: Yearly Average Data Value, by State",
+  labs(title = "Spaghetti Plot: Yearly Average Crude Prevalence, by State",
        x = "Year",
-       y = "Average Data Value"
+       y = "Average Crude Prevalence (%)"
       )
 ```
 
-  * The average data values across locations within a state fluctuates across years, but overall remains fairly stable. There is no distinguishable trend in the average data values across years. 
+  * The average crude prevalence across locations within a state fluctuates across years, but overall remains fairly stable. There is no distinguishable trend in the average data values across years. 
   
-  * Among all data available, `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 1]` has the highest average data value, `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 1]` has the lowest average data value.
+  * Among all data available, `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 1]` has the highest average crude prevalence, `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 1]` has the lowest average crude prevalence.
 
 3. Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
 
@@ -270,9 +271,9 @@ ggplot(brfss_q3, aes(x = response, y = data_value)) +
              outlier.size=2, notch=FALSE) + 
   facet_grid(. ~ year) +
   labs(
-    title = "Box Plot: Data Value for Responses in NY State, 2006 vs. 2010",
+    title = "Box Plot: Crude Prevalence for Responses in NY State, 2006 vs. 2010",
        x = "Response",
-       y = "Data Value"
+       y = "Crude Prevalence (%)"
       ) + 
   theme(
     title = element_text(size=10),
@@ -283,18 +284,18 @@ ggplot(brfss_q3, aes(x = response, y = data_value, color = location_desc)) +
   geom_point() + 
   facet_grid(. ~ year) +
   labs(
-    title = "Scatter Plot: Data Value for Responses among Locations in NY State, 2006 vs. 2010",
+    title = "Scatter Plot: Crude Prevalence for Responses among Locations in NY State, 2006 vs. 2010",
        x = "Response",
-       y = "Data Value"
+       y = "Crude Prevalence (%)"
       ) + 
   theme(
     title = element_text(size=10),
     axis.text.x = element_text(size=7))
 ```
 
-  * Based on the plots, we can see that *Poor* responses correspond to the lowest data values across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the data values also increase. However, for responses of *Excellent*, we see a decreased data value distribution compared to the previous *Good* and *Very good*. 
+  * Based on the plots, we can see that *Poor* responses correspond to the lowest crude prevalence across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the crude prevalence also increases. However, for responses of *Excellent*, we see a decreased crude prevalence distribution compared to the previous *Good* and *Very good*. 
   
-  * We can see that in 2006, responses *Good* and *Very good* have comparable data value distributions, although the median for *Very good* is slightly higher. When it comes to 2010, the data value for responses *Very good* is apparently higher than that of *Good*. Responses *Fair* and *Poor* in 2010 have wider spread compared to that of 2006.
+  * We can see that in 2006, responses *Good* and *Very good* have comparable crude prevalence distributions, although the median for *Very good* is slightly higher. When it comes to 2010, the crude prevalence for responses *Very good* is apparently higher than that of *Good*. Responses *Fair* and *Poor* in 2010 have wider spread compared to that of 2006.
 
 ## Question 3
 
