@@ -6,6 +6,8 @@ output:
     css: styles.css
 ---
 
+[Go Back](github_projects.html) 
+
 ## Project Overview
 
 This project utilized data “Behavioral Risk Factors Surveillance System for Selected Metropolitan Area Risk Trends (SMART) for 2002-2010” or the `brfss_smart2010` dataset from package `p8105.datasets` to explore the self-rated overall health among US population, with a particular focus on New York State residents. The project utilized R version 4.3.1 and R packages `dplyr`, `ggplot2`, `tidyverse`, and `p8105.datasets`. 
