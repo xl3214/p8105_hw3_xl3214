@@ -1,0 +1,153 @@
+---
+title: "Level of Activity and Demographic Variables"
+output: 
+  prettydoc::html_pretty:
+    theme: leonids
+    css: styles.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Overview
+
+This project utilized accelerometer data collected on 250 participants in the NHANES study, or the `accel` dataset. The demographic dataset is accessible from [HERE](https://p8105.com/data/nhanes_covar.csv), and the accelerometer data is accessible from [HERE](https://p8105.com/data/nhanes_accel.csv). The project utilized R version 4.3.1 and R packages `dplyr`, `ggplot2`, and `tidyverse`. 
+
+```{r load necessary R packages, message = FALSE, results = 'hide', echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+```
+
+After cleaning, final dataset includes all originally observed variables; participants less than 21 years of age or with missing demographic data are excluded.
+
+```{r Q3- Read-in demographic dataset and cleaning, message = FALSE, results = 'hide', echo=FALSE}
+#Checking variable descriptions (first few rows)
+covar_desc <- read_csv(file = "./nhanes_covar.csv", col_names = FALSE)
+covar_desc <- covar_desc[1:4,]
+covar_desc
+
+covar <- read_csv(file = "./nhanes_covar.csv", skip = 4, col_names = TRUE) |> 
+  janitor::clean_names() |> 
+  mutate(sex = recode(sex, "1" = "male", "2" = "female")) |>
+  mutate(education = recode(education, "1" = "Less than high school", "2" = "High school equivalent", "3" = "More than high school")) |>
+  mutate(education = factor(education, levels=c("Less than high school", "High school equivalent", "More than high school"), ordered=TRUE)) |>
+  filter(age >= 21) |>
+  na.omit()
+
+head(covar)
+sum(is.na(covar))
+```
+
+```{r Q3- Read-in accelerometer dataset and cleaning, message = FALSE, results = 'hide', echo=FALSE}
+accel <- read_csv(file = "./nhanes_accel.csv") |>
+  janitor::clean_names()
+```
+
+```{r Q3- Merge the two datasets to form a final dataset, message = FALSE, results = 'hide', echo=FALSE}
+q3_merged <- left_join(covar, accel)
+q3_merged
+summary(q3_merged)
+```
+
+There are `r nrow(q3_merged)` participants in the study, and the merged dataset has `r ncol(q3_merged)` variables, after excluding participants less than 21 years of age and those with missing demographic data. 
+
+## Visualizations and EDA
+
+#### Table of gender distribution in each education category
+```{r Q3- sex in each education cat, echo = FALSE, message = FALSE}
+#Create table for the number of men and women in each education category
+sex_education_df <- q3_merged |>
+  group_by(education, sex) |> 
+  summarise(n_obs = n())
+sex_education_df |> knitr::kable()
+```
+
+Based on the table, for education levels of *Less than high school* and *More than high school*, male and female have similar number of participants. For *High school equivalent* education level, however, there are much more males compared to females. 
+
+#### Box Plot of age distributions in each education category, by gender
+```{r Q3- age distribution by sex in each education cat, echo = FALSE, message = FALSE}
+#Create visualization of the age distributions for men and women in each education category
+ggplot(q3_merged, aes(x = age, y = education)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+             outlier.size=2, notch=FALSE) +
+  facet_grid(. ~ sex) +
+  labs(
+    title = "Box Plot: Age Distribution in Each Education Level, by Gender",
+       y = "Education Level",
+       x = "Age"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=10), 
+    axis.text.y = element_text(size=10))
+```
+  
+Age distribution for different education level is similar across genders. Again, difference between genders is only apparent for *High school equivalent* education level, where the minimum, maximum, and mean age of female is higher than male.
+
+## Total Activity over the Day
+
+#### Distribution of total activity over day by age, gender, and education level
+```{r Q3- calculate total mims and plot it against age, echo = FALSE, message = FALSE}
+#aggregate across minutes to create total activity variable, "total_mims"
+analysis_total <- q3_merged |> select(min1:min1440)
+
+analysis_total <- q3_merged |> 
+  mutate(total_mims = rowSums(analysis_total, na.rm = TRUE)) |>
+  select(seqn, sex, age, education, total_mims)
+
+ggplot(analysis_total, aes(x = age, y = total_mims, color = sex)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(aes(group = sex), se = FALSE) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "Total Activity Distribution by Age and Gender, Grouped by Education Level",
+       y = "Total Activity (MIMS)",
+       x = "Age"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=10), 
+    axis.text.y = element_text(size=10),
+    legend.position = "top")
+```
+
+Overall, total activity decreases as age increases, consistent across all education levels and genders. This trend is most apparent among those with less than high school education, and least apparent among those with more than high school education. 
+  
+For those with less than high school education, total activity decreases as age proceed from 21 to 50, then increases as age proceed from 50 to 60, then decreases again as age continues to increase. Males have more increase from age 50 to 60 than female.
+  
+For those with high school equivalent education, total activity increases as age proceed from 21 to 40, then decreases as age continues to proceed. For females, total activity increases again from age 60 to 70, then decreases again. For males, total activity plateaus starting age 60. 
+  
+For those with more than high school education, total activity plateaus from age 21 to 40. For females, total activity increases slightly as age proceed from 40 to 45, then decreases starting 50. For males, total activity plateaus from 21 to 50, increases slightly from 50 to 60, then decreases starting 60.
+
+#### 24-hour activity time courses by education level and gender
+```{r Q3- 24-hour activity time courses for each education level and sex, echo = FALSE, message = FALSE}
+#Prep dataset for plotting, i.e., change variables min1:min1440 to rows and change "min1" to 1
+analysis_time_course <- q3_merged |> 
+  pivot_longer(min1:min1440, names_to = "minute", values_to = "mims") |>
+  group_by(seqn) |>
+  mutate(minute = as.numeric(str_replace(minute, "min", "")))
+
+ggplot(analysis_time_course, aes(x = minute, y = mims, color = sex)) +
+  geom_smooth(aes(group = sex), se = FALSE) +
+  facet_grid(. ~ education) +
+  labs(
+    title = "24-Hour Activity Time Courses by Minute and Sex, Grouped by Education Level",
+       x = "Minute of Day",
+       y = "Activity per Minute (MIMS/min)"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=10), 
+    axis.text.y = element_text(size=10),
+    legend.position = "right")
+```
+
+In a 24-hour time window, activity level first decreases in the early morning (0 to 250 minutes or  0 to `r round(250/60, 2)` hours of day), sharply increases starting at 250 minutes or `r round(250/60, 2)` hours of day, reaches its peak 500 to 10200 minutes or `r round(500/60, 2)` to `r round(10200/60, 2)` hours of day, and sharply decreases starting at 10200 minutes or `r round(10200/60, 2)` hours of day. This trend is observed across education levels and sex. Female has higher activity level peak than males, across all education levels. 
+  
+The activity peak for those with less than high school education is highest for both genders compared to the other two education level groups. This group decreases sharply after it reaches its peak activity level, consistent across genders.
+  
+The activity peak for those with high school equivalent education is the lowest for both genders compared to the other to education level groups. After reaching to its peak, this group plateaus (slightly decreases) from 500 to 10200 minutes or `r round(500/60, 2)` to `r round(10200/60, 2)` hours of day, then sharply decreases afterwards.
+  
+The activity peak for those with more than high school education plateaus the longest, particularly for males. 

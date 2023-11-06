@@ -1,0 +1,112 @@
+---
+title: "Geographic Location and Self-rated Overall Health"
+output: 
+  prettydoc::html_pretty:
+    theme: leonids
+    css: styles.css
+---
+
+## Project Overview
+
+This project utilized data “Behavioral Risk Factors Surveillance System for Selected Metropolitan Area Risk Trends (SMART) for 2002-2010” or the `brfss_smart2010` dataset from package `p8105.datasets` to explore the self-rated overall health among US population, with a particular focus on New York State residents. The project utilized R version 4.3.1 and R packages `dplyr`, `ggplot2`, `tidyverse`, and `p8105.datasets`. 
+
+```{r load dataset & necessary R packages, message = FALSE, results = 'hide', echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(p8105.datasets)
+data("brfss_smart2010")
+sum(is.na(brfss_smart2010))
+```
+
+```{r data cleaning, results = 'hide', message = FALSE, echo=FALSE, warning=FALSE}
+#format the data to use appropriate variable names
+#focus on the “Overall Health” topic, include only responses from “Excellent” to “Poor”
+#organize responses as a factor taking levels ordered from “Poor” to “Excellent”
+brfss <- brfss_smart2010 |>
+  janitor::clean_names() |> 
+  filter(topic == "Overall Health" & response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) |> 
+  mutate(response = factor(response, 
+                           levels=c("Poor", "Fair", "Good", "Very good", "Excellent"), ordered=TRUE)) |>
+  rename(resp_id = respid, location_abbr = locationabbr, location_desc = locationdesc)
+
+head(brfss)
+sum(is.na(brfss))
+```
+
+After cleaning, the BRFSS dataset has `r nrow(brfss)` observations and `r ncol(brfss)` variables. Variables include: *`r colnames(brfss)`*. The type of data value in this dataset is `r distinct(brfss, data_value_type)`, and the unit of data value is **`r distinct(brfss, data_value_unit)`**. The topic of focus is "`r unique(pull(brfss, topic))`", question is "`r unique(pull(brfss, question))`", and responses include "`r unique(pull(brfss, response))`".
+
+## Visualizations and EDA
+
+```{r results = 'hide', message = FALSE, echo = FALSE}
+brfss_q1 <- brfss |> 
+  group_by(year) |> 
+  select(year, location_abbr, location_desc) |>
+  distinct(year, location_abbr, location_desc) |>
+  group_by(year, location_abbr) |>
+  summarise(n_obs = n())
+sum(is.na(brfss_q1))
+```
+
+In 2002, `r pull(filter(brfss_q1, year == "2002" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
+In 2010, `r pull(filter(brfss_q1, year == "2010" & n_obs > 7), location_abbr)` states were observed at 7 or more locations. 
+From 2002 to 2010, there is a significant increase in the number of states that have 7 or more observation locations. 
+
+#### Spaghetti Plot of State Average Prevalence over Time, limited to responses of "Excellent"
+```{r Q2- Spaghetti Plot, echo = FALSE, warning = FALSE}
+brfss_q2 <- brfss |> 
+  filter(response == "Excellent") |>
+  group_by(year, location_abbr) |> 
+  mutate(data_value_state_avg = mean(data_value)) |>
+  select(year, location_abbr, data_value_state_avg) |>
+  distinct(year, location_abbr, data_value_state_avg)
+
+ggplot(brfss_q2, aes(x = year, y = data_value_state_avg, color = location_abbr)) + 
+  geom_line() +
+  labs(title = "Spaghetti Plot: Yearly Average Crude Prevalence, by State",
+       x = "Year",
+       y = "Average Crude Prevalence (%)"
+      )
+```
+
+The average crude prevalence across locations within a state fluctuates across years, but overall remains fairly stable. There is no distinguishable trend in the average data values across years. 
+  
+Among all data available, `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.max(pull(brfss_q2,data_value_state_avg)), 1]` has the highest average crude prevalence, `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 2]` in `r brfss_q2[which.min(pull(brfss_q2,data_value_state_avg)), 1]` has the lowest average crude prevalence.
+
+#### Plot of prevalence distribution for responses “Poor” to “Excellent” among locations in NY State, 2006 and 2010
+```{r Q2- Two-panel plot, echo = FALSE, warning = FALSE}
+brfss_q3 <- brfss |>
+  filter(location_abbr == "NY" & year %in% c("2006", "2010")) |>
+  select(year, location_desc, response, data_value)
+
+#Graph 1: without coloring by county
+ggplot(brfss_q3, aes(x = response, y = data_value)) + 
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+             outlier.size=2, notch=FALSE) + 
+  facet_grid(. ~ year) +
+  labs(
+    title = "Box Plot: Crude Prevalence for Responses in NY State, 2006 vs. 2010",
+       x = "Response",
+       y = "Crude Prevalence (%)"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=7))
+
+#Graph 2: with coloring by county
+ggplot(brfss_q3, aes(x = response, y = data_value, color = location_desc)) + 
+  geom_point() + 
+  facet_grid(. ~ year) +
+  labs(
+    title = "Scatter Plot: Crude Prevalence for Responses among Locations in NY State, 2006 vs. 2010",
+       x = "Response",
+       y = "Crude Prevalence (%)"
+      ) + 
+  theme(
+    title = element_text(size=10),
+    axis.text.x = element_text(size=7))
+```
+
+Based on the plots, we can see that *Poor* responses had the lowest crude prevalence across all locations in NY State for both 2006 and 2010, and as the order of responses increases towards *Very good*, the crude prevalence also increases. However, for responses of *Excellent*, we see a decreased crude prevalence distribution compared to the previous *Good* and *Very good*. 
+  
+We can see that in 2006, responses *Good* and *Very good* have comparable crude prevalence distributions, although the median for *Very good* is slightly higher. When it comes to 2010, the crude prevalence for responses *Very good* is apparently higher than that of *Good*. Responses *Fair* and *Poor* in 2010 have wider spread compared to that of 2006.
